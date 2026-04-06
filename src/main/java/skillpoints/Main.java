@@ -13,6 +13,7 @@ public class Main {
 			new WynnItem(new int[]{ 50,  0,  0,  0,  0},	// Shatterglass
 			             new int[]{  7,  0,  0, -3,  0}),
 		};
+		int[] skillpoints0 = new int[] {59, 0, 0, 43, 0};
 //		WynnItem[] items = new WynnItem[]{
 //		new WynnItem(new int[]{ 40,  0,  0, 40, 40},	// Valhalla
 //				     new int[]{  9,  0,  0,  9,  9}),
@@ -32,7 +33,8 @@ public class Main {
 //		             new int[]{  7,  0,  0, -3,  0}),
 //		};
 //		int[] skillpoints = new int[] {21, 40, 73, 28, 29};
-		WynnItem[] items = new WynnItem[]{
+		WynnItem[] items = new WynnItem[]{	// This case gives failures for d0cr and wynn algorithm, currently.
+											// The only valid equip order is a -> b -> c.
 		new WynnItem(new int[]{  1,  0,  0,  0,  0},	// a
 				     new int[]{  0,  2, -1,  0,  0}),
 		new WynnItem(new int[]{  0,  2,  0,  0,  0},	// b
@@ -42,22 +44,22 @@ public class Main {
 		};
 		int[] skillpoints = new int[] {1, 0, 0, 0, 0};
 
-//		SkillpointChecker solver = new WynnAlgorithm();
-		SCCGraphAlgorithm solver = new SCCGraphAlgorithm();
-		solver.check(items0, skillpoints);
+		SkillpointChecker solver = new WynnAlgorithm();
+//		SCCGraphAlgorithm solver = new SCCGraphAlgorithm();
+		solver.check(items0, skillpoints0);
 //		OptimizedDFS.solve(Arrays.asList(items0), skillpoints);
 
 //		List<WynnItem> l = Arrays.asList(items);
 		long l1 = System.nanoTime();
 //		int[] result = OptimizedDFS.solve(l, skillpoints);
-		solver.check(items, skillpoints);
+		boolean[] equipOK = solver.check(items, skillpoints);
 
 		long l2 = System.nanoTime();
 		System.out.println("Solve took " + ((l2-l1) / 1e6) + " ms");
-		System.out.println("SCC Graph construction took " + solver.ctx.res.elapsedNS / 1000000.0 + " ms");
-		int[] result = solver.ctx.bestOrder;
-		System.out.println(solver.ctx.evals + " evals.");
-		for (int b : result) {
+//		System.out.println("SCC Graph construction took " + solver.ctx.res.elapsedNS / 1000000.0 + " ms");
+//		int[] result = solver.ctx.bestOrder;
+//		System.out.println(solver.ctx.evals + " evals.");
+		for (boolean b : equipOK) {
 			System.out.println(b);
 		}
 	}

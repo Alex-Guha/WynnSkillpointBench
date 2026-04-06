@@ -241,8 +241,8 @@ public class OptimizedDFS {
     }
 
     public static void revertState(int item, int[] stats, int[] remainingGain) {
-        for (int k = 0; k < s; k++) stats[k] -= deltas[item][k];
         for (int k = 0; k < s; k++) {
+        	stats[k] -= deltas[item][k];
             if (deltas[item][k] > 0) remainingGain[k] += deltas[item][k];
         }
     }
