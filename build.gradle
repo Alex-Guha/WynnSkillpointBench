@@ -1,5 +1,6 @@
 plugins {
     id 'application'
+    id 'me.champeau.jmh' version '0.7.3'
 }
 
 group = 'dev'
@@ -20,10 +21,106 @@ dependencies {
 
     testImplementation platform('org.junit:junit-bom:5.11.4')
     testImplementation 'org.junit.jupiter:junit-jupiter'
+
+    jmh 'org.openjdk.jmh:jmh-core:1.37'
+    jmh 'org.openjdk.jmh:jmh-generator-annprocess:1.37'
 }
 
 application {
 	mainClass = "skillpoints.Main"
+}
+
+jmh {
+    warmupIterations = 1
+    iterations = 3
+    fork = 1
+    warmup = '200ms'
+    timeOnIteration = '200ms'
+    timeUnit = 'us'
+    benchmarkMode = ['avgt']
+    resultFormat = 'JSON'
+    // Pass -Pbm=<regex> to filter, e.g. ./gradlew jmh -Pbm="SkillpointJMH"
+    if (project.hasProperty('bm')) {
+        includes = [project.property('bm')]
+    }
+    // To filter by algorithm/case, use the JMH jar directly:
+    //   ./gradlew jmhJar
+    //   java -jar build/libs/*-jmh.jar -p algoName=WynnAlgorithm -p caseName=case3_noRequirements
+}
+
+tasks.named('jmh').configure {
+    finalizedBy 'jmhReport'
+}
+
+import groovy.json.JsonSlurper
+
+tasks.register('jmhReport') {
+    description = 'Print a concise per-algorithm summary after JMH benchmarks'
+    doLast {
+        def resultsFile = file("${project.buildDir}/results/jmh/results.json")
+        if (!resultsFile.exists()) {
+            println "\n⚠ No JMH results found at ${resultsFile}"
+            return
+        }
+        def results = new JsonSlurper().parseText(resultsFile.text)
+        if (results.isEmpty()) {
+            println "\n⚠ JMH results file is empty"
+            return
+        }
+
+        // Group by algorithm
+        def byAlgo = [:].withDefault { [] }
+        results.each { r ->
+            def algo = r.params?.algoName ?: 'unknown'
+            def caseName = r.params?.caseName ?: 'unknown'
+            def score = r.primaryMetric.score
+            def error = r.primaryMetric.scoreError
+            def unit = r.primaryMetric.scoreUnit
+            byAlgo[algo] << [caseName: caseName, score: score, error: error, unit: unit]
+        }
+
+        def unit = results[0].primaryMetric.scoreUnit ?: 'us/op'
+
+        println "\n${'=' * 72}"
+        println "  ALGORITHM SUMMARY REPORT"
+        println "${'=' * 72}"
+
+        // Collect summary rows for final table
+        def summaryRows = []
+
+        byAlgo.each { algo, cases ->
+            def scores = cases.collect { it.score }
+            def mean = scores.sum() / scores.size()
+            def best = cases.min { it.score }
+            def worst = cases.max { it.score }
+            def median = scores.sort()[scores.size() / 2 as int]
+
+            summaryRows << [algo: algo, mean: mean, median: median,
+                            best: best.score, bestCase: best.caseName,
+                            worst: worst.score, worstCase: worst.caseName,
+                            count: cases.size()]
+
+            println "\n  ── ${algo} (${cases.size()} cases) ──"
+            printf  "  Mean: %8.3f %s%n", mean, unit
+            printf  "  Median: %6.3f %s%n", median, unit
+            printf  "  Best:  %7.3f %s  ← %s%n", best.score, unit, best.caseName
+            printf  "  Worst: %7.3f %s  ← %s%n", worst.score, unit, worst.caseName
+        }
+
+        // Comparison table sorted by mean
+        summaryRows.sort { it.mean }
+        def fastest = summaryRows[0].mean
+
+        println "\n${'─' * 72}"
+        printf  "  %-25s %10s %10s %10s %10s%n", 'Algorithm', "Mean($unit)", 'Median', 'Best', 'vs 1st'
+        println "  ${'─' * 67}"
+        summaryRows.each { r ->
+            def ratio = r.mean / fastest
+            printf "  %-25s %10.3f %10.3f %10.3f %9.1fx%n",
+                   r.algo, r.mean, r.median, r.best, ratio
+        }
+        println "${'=' * 72}"
+    }
 }
 
 test {

@@ -85,14 +85,31 @@ If you have Java 21 as your default, you can omit the `JAVA_HOME=` prefix.
 
 Tests are in `src/test/java/skillpoints/SkillpointTest.java`. They use JUnit 5 parameterized tests — every test case runs against every algorithm.
 
-**Adding a test case:** add an entry to `testCases()`.
+**Adding a test case:** add an entry to `TestCases.java` (shared between tests and benchmarks).
 
-**Adding an algorithm:** add an entry to `algorithms()`.
+**Adding an algorithm:** add an entry to `algorithms()` in `SkillpointTest.java` and to the `@Param` list in `SkillpointJMH.java`.
 
 ## Benchmark
 
-`SkillpointBenchmark.java` runs all test cases against all algorithms 1000 times (with 50 warmup iterations for JIT) and reports average runtimes per algorithm and per case.
+Benchmarking uses [JMH](https://github.com/openjdk/jmh) (Java Microbenchmark Harness) for statistically rigorous results. JMH handles JIT warmup detection, fork isolation, dead-code elimination prevention, and reports confidence intervals.
+
+Default config: 1 fork, 1×200ms warmup, 3×200ms measurement, average time in microseconds.
 
 ```bash
-JAVA_HOME=/usr/lib/jvm/java-21-openjdk-amd64 ./gradlew test --tests "skillpoints.SkillpointBenchmark"
+# Run all benchmarks (4 algos × 23 cases, ~1-1.5 min)
+./gradlew jmh
+
+# Clean first if you changed algorithm code (ensures no stale bytecode in the JMH jar)
+./gradlew clean jmh
+
+# Build the JMH jar for more control over parameters
+./gradlew jmhJar
+
+# Run specific algorithm(s) and/or case(s)
+java -jar build/libs/*-jmh.jar -p algoName=WynnAlgorithm,WynnSolver -p caseName=case8_fullBuild_8items
+
+# Quick iteration during development (fewer warmup/measurement iterations)
+java -jar build/libs/*-jmh.jar -wi 2 -i 3 -p algoName=WynnSolver
 ```
+
+Results are written to `build/results/jmh/results.txt`.
