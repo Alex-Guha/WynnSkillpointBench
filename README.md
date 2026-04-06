@@ -4,9 +4,9 @@ Benchmark and correctness testing for Wynncraft skillpoint equip-ordering algori
 
 ## Current Standings
 
-<img width="599" height="173" alt="image" src="https://github.com/user-attachments/assets/25dd15ce-179f-447e-98c9-3f76c8eca7f0" />
+<img width="790" height="198" alt="image" src="https://github.com/user-attachments/assets/3d604bfa-a686-4689-9954-90eb5722cf94" />
 
-<img width="628" height="183" alt="image" src="https://github.com/user-attachments/assets/dde6c133-4f1e-4cef-a7ce-88f8fe7dbcd2" />
+<img width="651" height="199" alt="image" src="https://github.com/user-attachments/assets/96b277b9-6875-4a68-905c-739d609bc878" />
 
 ## Skill Point Algorithm Bounty
 
@@ -52,12 +52,13 @@ Given a set of items (each with skillpoint requirements and bonuses) and a playe
 
 ## Algorithms (Current Standings)
 
-| Class | Approach | Worst-case Time | Status |
-|-------|----------|-----------------|--------|
-| `WynnAlgorithm` | Greedy positives + 2^n negative-mask enumeration | O(n² · 2^q), q = negative items. All-negative worst case: O(n² · 2^n) | 22/23, ~0.068ms total |
-| `SCCGraphAlgorithm` | Dependency graph → Kosaraju SCC → permute within SCCs | O(n · ∏mᵢ!) across SCC sizes mᵢ. Single-SCC worst case: O(n · n!) | 14/23, ~0.093ms total |
-| `OptimizedDFS` | DFS with dominance pruning + bitmask memoization | O(m · 2^m), m = non-free items after preprocessing (hard-coded m ≤ 8) | 20/23, ~0.096ms total |
-| `WynnSolverAlgorithm` | Free-item activation + backtracking over activation orderings with cascade validity | O(n · k!), k = non-free items. Worst case: O(n · n!) but pruning + early exit keep real builds fast | 23/23, ~0.015ms total avg |
+| Class | Approach | Worst-case Time |
+|-------|----------|-----------------|
+| `WynnAlgorithm` | Greedy positives + 2^n negative-mask enumeration | O(n² · 2^q), q = negative items. All-negative worst case: O(n² · 2^n) |
+| `SCCGraphAlgorithm` | Dependency graph → Kosaraju SCC → permute within SCCs | O(n · ∏mᵢ!) across SCC sizes mᵢ. Single-SCC worst case: O(n · n!) |
+| `OptimizedDFS` | DFS with dominance pruning + bitmask memoization | O(m · 2^m), m = non-free items after preprocessing (hard-coded m ≤ 8) |
+| `WynnSolverAlgorithm` | Free-item activation + backtracking over activation orderings with cascade validity | O(n · k!), k = non-free items. Worst case: O(n · n!) but pruning + early exit keep real builds fast |
+| `GreedyAlgorithm` | Greedy with minimum tracking + negative-bonus adjusted requirements | O(n²) |
 
 All algorithms extending `SkillpointChecker` implement:
 ```java
@@ -96,7 +97,7 @@ Benchmarking uses [JMH](https://github.com/openjdk/jmh) (Java Microbenchmark Har
 Default config: 1 fork, 1×200ms warmup, 3×200ms measurement, average time in microseconds.
 
 ```bash
-# Run all benchmarks (4 algos × 23 cases, ~1-1.5 min)
+# Run all benchmarks (5 algos × 23 cases, ~1-1.5 min)
 ./gradlew jmh
 
 # Clean first if you changed algorithm code (ensures no stale bytecode in the JMH jar)
@@ -112,4 +113,4 @@ java -jar build/libs/*-jmh.jar -p algoName=WynnAlgorithm,WynnSolver -p caseName=
 java -jar build/libs/*-jmh.jar -wi 2 -i 3 -p algoName=WynnSolver
 ```
 
-Results are written to `build/results/jmh/results.txt`.
+Results are written to `build/results/jmh/results.json`.

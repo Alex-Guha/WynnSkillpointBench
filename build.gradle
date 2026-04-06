@@ -113,7 +113,7 @@ tasks.register('jmhReport') {
 
         println "\n${'─' * 72}"
         printf  "  %-25s %10s %10s %10s %10s%n", 'Algorithm', "Mean($unit)", 'Median', 'Best', 'vs 1st'
-        println "  ${'─' * 67}"
+        println "  ${'─' * 70}"
         summaryRows.each { r ->
             def ratio = r.mean / fastest
             printf "  %-25s %10.3f %10.3f %10.3f %9.1fx%n",

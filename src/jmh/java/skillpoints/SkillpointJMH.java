@@ -28,7 +28,8 @@ public class SkillpointJMH {
             "WynnAlgorithm",
             "SCCGraphAlgorithm",
             "OptimizedDFS",
-            "WynnSolver"
+            "WynnSolver",
+            "GreedyAlgorithm"
     })
     String algoName;
 
@@ -72,6 +73,7 @@ public class SkillpointJMH {
             case "SCCGraphAlgorithm" -> new SCCGraphAlgorithm();
             case "OptimizedDFS" -> new OptimizedDFSChecker();
             case "WynnSolver" -> new WynnSolverAlgorithm();
+            case "GreedyAlgorithm" -> new GreedyAlgorithm();
             default -> throw new IllegalArgumentException("Unknown algorithm: " + algoName);
         };
 
