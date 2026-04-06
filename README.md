@@ -1,0 +1,83 @@
+# WynnSkillpointBench
+
+Benchmark and correctness testing for Wynncraft skillpoint equip-ordering algorithms.
+
+## Skill Point Algorithm Bounty
+
+Wynncraft is seeking an optimized **Skill Point allocation algorithm** capable of efficiently validating and maximizing equipment combinations under strict performance constraints.
+
+A bounty reward of **up to 100 in-game shares** will be granted for a successful solution.
+Exceptional implementations may qualify for a higher reward.
+
+### Objective
+
+Design an algorithm that:
+- Accepts a given set of equipment items
+- Evaluates viable combinations
+- Returns the **combination containing the highest number of valid items**
+
+### Requirements
+
+Your solution must be written in **Java** so we can evaluate on a real scenario.
+
+#### Performance
+- **Worst-case execution time:** ≤ 200,000 nanoseconds
+- **Target average execution time:** ≤ 70,000 nanoseconds
+
+#### Functional Constraints
+- Each piece of equipment has **skill point requirements** that must be validated
+- Equipment may **add or subtract skill points** when equipped
+- Skill points from equipment **must not recursively enable other equipment** (no bootstrapping between items)
+
+#### Validation Rules
+- A piece of equipment is considered **valid** only if all its requirements are met at the time of evaluation
+- The algorithm must determine validity across the full combination, **the order of items should not be relevant**
+- In case of a combination tie, the combination with the **highest total given skill points** should win
+
+### Example Edge Cases
+
+TODO
+
+---
+
+## Problem
+
+Given a set of items (each with skillpoint requirements and bonuses) and a player's assigned skillpoints, determine which items can be simultaneously equipped. Items must be equipped in some order where each item's requirements are met at equip time, and no item's requirements are violated by later items' negative bonuses.
+
+## Algorithms
+
+| Class | Approach | Status |
+|-------|----------|--------|
+| `WynnAlgorithm` | Greedy positives + 2^n negative-mask enumeration | **Buggy** — fails dependency chains, crashes on edge cases |
+| `SCCGraphAlgorithm` | Dependency graph → Kosaraju SCC → permute within SCCs | Correct but exponential in SCC size |
+| `OptimizedDFS` | DFS with dominance pruning + bitmask memoization | Different interface (returns equip order, not `boolean[]`) |
+
+All algorithms extending `SkillpointChecker` implement:
+```java
+boolean[] check(WynnItem[] items, int[] assignedSkillpoints)
+```
+Returns a boolean array indicating which items can be equipped.
+
+## Requirements
+
+- **Java 21** (Java 25 also available but Gradle needs 21)
+
+## Build & Run
+
+```bash
+# Run tests
+JAVA_HOME=/usr/lib/jvm/java-21-openjdk-amd64 ./gradlew test
+
+# Run Main.java (manual test harness)
+JAVA_HOME=/usr/lib/jvm/java-21-openjdk-amd64 ./gradlew run
+```
+
+If you have Java 21 as your default, you can omit the `JAVA_HOME=` prefix.
+
+## Tests
+
+Tests are in `src/test/java/skillpoints/SkillpointTest.java`. They use JUnit 5 parameterized tests — every test case runs against every algorithm.
+
+**Adding a test case:** add an entry to `testCases()`.
+
+**Adding an algorithm:** add an entry to `algorithms()`.

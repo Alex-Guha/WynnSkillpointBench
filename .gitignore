@@ -60,3 +60,11 @@ local.properties
 .project
 .classpath
 /.gradle/
+
+# IDE
+.vscode/
+
+# Gradle
+build/
+gradle.properties
+!gradle/wrapper/gradle-wrapper.jar
