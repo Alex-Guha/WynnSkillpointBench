@@ -4,9 +4,9 @@ Benchmark and correctness testing for Wynncraft skillpoint equip-ordering algori
 
 ## Current Standings
 
-<img width="790" height="215" alt="image" src="https://github.com/user-attachments/assets/33611869-b604-4c34-b7a1-81c9c35e74c9" />
+<img width="787" height="237" alt="image" src="https://github.com/user-attachments/assets/11688740-b8b0-43c2-93ec-a23ce685916f" />
 
-<img width="656" height="213" alt="image" src="https://github.com/user-attachments/assets/8f1eaa5f-6775-48fc-8618-4544101496d3" />
+<img width="660" height="233" alt="image" src="https://github.com/user-attachments/assets/b4de4856-a31d-43cb-84cc-855aa9a9040a" />
 
 ## Skill Point Algorithm Bounty
 
@@ -50,7 +50,7 @@ TODO
 
 Given a set of items (each with skillpoint requirements and bonuses) and a player's assigned skillpoints, determine which items can be simultaneously equipped. Items must be equipped in some order where each item's requirements are met at equip time, and no item's requirements are violated by later items' negative bonuses.
 
-## Algorithms (Current Standings)
+## Algorithms
 
 | Class | Approach | Worst-case Time |
 |-------|----------|-----------------|
@@ -59,6 +59,9 @@ Given a set of items (each with skillpoint requirements and bonuses) and a playe
 | `OptimizedDFS` | DFS with dominance pruning + bitmask memoization | O(m · 2^m), m = non-free items after preprocessing (hard-coded m ≤ 8) |
 | `WynnSolverAlgorithm` | Free-item activation + backtracking over activation orderings with cascade validity | O(n · k!), k = non-free items. Worst case: O(n · n!) but pruning + early exit keep real builds fast |
 | `GreedyAlgorithm` | Greedy with minimum tracking + negative-bonus adjusted requirements | O(n²) |
+| `ExactMaskDpChecker` | Precompute sustainability for all masks + BFS over reachable masks | O(n · 2^n) |
+| `CascadeBoundChecker` | Forced-closure for safe items + DFS with bitmask memoization over branch items | O(f² · b · 2^n), f = forced (safe) items, b = branch (negative/risky) items. All-branch worst case: O(n · 2^n) |
+| `MyFirstAlgorithm` | Greedy fast path + BFS bitmask DP fallback with sustainability checks | O(m² · 2^m), m = non-free items (hard-capped m ≤ 8). Greedy-only best case: O(n²) |
 
 All algorithms extending `SkillpointChecker` implement:
 ```java
