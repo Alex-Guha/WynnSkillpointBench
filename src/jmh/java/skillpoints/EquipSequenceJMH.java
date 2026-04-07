@@ -39,6 +39,7 @@ public class EquipSequenceJMH {
             "CascadeBound",
             "MyFirstAlgorithm",
             "MySecondAlgorithm",
+            "OurSecondAlgorithm",
     })
     String algoName;
 
@@ -77,6 +78,7 @@ public class EquipSequenceJMH {
             case "CascadeBound" -> new CascadeBoundChecker();
             case "MyFirstAlgorithm" -> new MyFirstAlgorithm();
             case "MySecondAlgorithm" -> new MySecondAlgorithm();
+            case "OurSecondAlgorithm" -> new OurSecondAlgorithm();
             default -> throw new IllegalArgumentException("Unknown algorithm: " + algoName);
         };
         needsClone = checker instanceof GreedyAlgorithm;
@@ -96,7 +98,8 @@ public class EquipSequenceJMH {
         for (int p = 0; p < NUM_PERMUTATIONS; p++) {
             // Fisher-Yates shuffle
             int[] order = new int[n];
-            for (int i = 0; i < n; i++) order[i] = i;
+            for (int i = 0; i < n; i++)
+                order[i] = i;
             for (int i = n - 1; i > 0; i--) {
                 int j = rng.nextInt(i + 1);
                 int tmp = order[i];
