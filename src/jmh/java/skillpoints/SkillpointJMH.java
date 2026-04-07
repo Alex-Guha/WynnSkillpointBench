@@ -101,6 +101,9 @@ public class SkillpointJMH {
                 baseAssignedSkillpoints.clone()
             );
         } else {
+            if (checker instanceof CascadeBoundChecker cbc) {
+                cbc.clearPreparedCache();
+            }
             result = checker.check(benchmarkItems, benchmarkAssignedSkillpoints);
         }
         bh.consume(result);

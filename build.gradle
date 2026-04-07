@@ -130,10 +130,3 @@ test {
         showStandardStreams = true
     }
 }
-
-tasks.register("printTestRuntimeClasspath") {
-    dependsOn testClasses
-    doLast {
-        println sourceSets.test.runtimeClasspath.asPath
-    }
-}
