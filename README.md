@@ -6,7 +6,7 @@ Benchmark and correctness testing for Wynncraft skillpoint equip-ordering algori
 
 <img width="787" height="237" alt="image" src="https://github.com/user-attachments/assets/11688740-b8b0-43c2-93ec-a23ce685916f" />
 
-<img width="660" height="233" alt="image" src="https://github.com/user-attachments/assets/b4de4856-a31d-43cb-84cc-855aa9a9040a" />
+<img width="659" height="233" alt="image" src="https://github.com/user-attachments/assets/054d4b71-40f5-4c52-9e53-36f9e53b17ad" />
 
 ## Skill Point Algorithm Bounty
 

@@ -8,7 +8,13 @@ public class WynnAlgorithm extends SkillpointChecker {
 
 	private WynnItem[] cachedItems = new WynnItem[0];
 	private int[] cachedMasks = new int[0];
-	
+
+	@Override
+	public void clearCache() {
+		cachedItems = new WynnItem[0];
+		cachedMasks = new int[0];
+	}
+
 	private void generateMasks(WynnItem[] items) {
 		boolean refresh = true;
 		if (items.length == cachedItems.length) {

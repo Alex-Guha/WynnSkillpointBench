@@ -10,7 +10,8 @@ public final class CascadeBoundChecker extends SkillpointChecker {
     private int[] needStack = new int[0];
     private boolean[] visitedMask = new boolean[0];
 
-    public void clearPreparedCache() {
+    @Override
+    public void clearCache() {
         preparedCache.clear();
     }
 
