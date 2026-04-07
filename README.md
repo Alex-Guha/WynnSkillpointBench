@@ -123,7 +123,20 @@ Tests are in `src/test/java/skillpoints/SkillpointTest.java`. They use JUnit 5 p
 
 **Adding a test case:** add an entry to `TestCases.java` (shared between tests and benchmarks).
 
-**Adding an algorithm:** add an entry to `algorithms()` in `SkillpointTest.java` and to the `@Param` list in `SkillpointJMH.java`.
+**Adding an algorithm:**
+
+1. Create your class in `src/main/java/skillpoints/`, extending `SkillpointChecker`
+2. Add a `Named.of(...)` entry to `algorithms()` in `SkillpointTest.java`
+3. Add your algo name to the `@Param` `algoName` list in both:
+   - `src/jmh/java/skillpoints/SkillpointJMH.java`
+   - `src/jmh/java/skillpoints/EquipSequenceJMH.java`
+4. Add a `case` to the `switch` in `setup()` in both JMH files
+5. Run tests and benchmarks:
+   ```bash
+   ./gradlew test
+   ./gradlew jmhRun -Palgo=YourAlgorithm
+   ./gradlew jmhRun -Palgo=YourAlgorithm -Pbm=EquipSequenceJMH
+   ```
 
 ## Benchmark
 
@@ -132,23 +145,23 @@ Benchmarking uses [JMH](https://github.com/openjdk/jmh) (Java Microbenchmark Har
 Default config: 1 fork, 1×200ms warmup, 3×200ms measurement, average time in microseconds.
 
 ```bash
-# Run all benchmarks (5 algos × 23 cases, ~1-1.5 min)
+# Run all benchmarks (7 algos × 23 cases, ~1-1.5 min)
 ./gradlew jmh
 
 # Clean first if you changed algorithm code (ensures no stale bytecode in the JMH jar)
 ./gradlew clean jmh
 
-# Build the JMH jar for more control over parameters
-./gradlew jmhJar
+# Run specific algorithm(s) — with summary report
+./gradlew jmhRun -Palgo=WynnAlgorithm
 
 # Run specific algorithm(s) and/or case(s)
-java -jar build/libs/*-jmh.jar -p algoName=WynnAlgorithm,WynnSolver -p caseName=case8_fullBuild_8items
+./gradlew jmhRun -Palgo=WynnAlgorithm,WynnSolver -Pcase=case8_fullBuild_8items
 
-# Quick iteration during development (fewer warmup/measurement iterations)
-java -jar build/libs/*-jmh.jar -wi 2 -i 3 -p algoName=WynnSolver
+# Run only a specific benchmark class (e.g. EquipSequenceJMH or SkillpointJMH)
+./gradlew jmhRun -Palgo=WynnSolver -Pbm=EquipSequenceJMH
 ```
 
-Results are written to `build/results/jmh/results.json`.
+Results are written to `build/results/jmh/results.json`. Both `jmh` and `jmhRun` print a summary report.
 
 ### Equip Sequence Benchmark
 
@@ -163,11 +176,11 @@ Each `@Benchmark` invocation runs all 8 permutations (64 total `check()` calls).
 
 ```bash
 # Run only equip-sequence benchmarks
-./gradlew jmh -Pbm="EquipSequenceJMH"
+./gradlew jmhRun -Pbm=EquipSequenceJMH
 
 # Run only the per-case benchmarks (original)
-./gradlew jmh -Pbm="SkillpointJMH"
+./gradlew jmhRun -Pbm=SkillpointJMH
 
-# Specific algo/case via the JMH jar
-java -jar build/libs/*-jmh.jar -p algoName=WynnSolver -p caseName=case8_fullBuild_8items "EquipSequenceJMH"
+# Specific algo + equip sequence
+./gradlew jmhRun -Palgo=WynnSolver -Pcase=case8_fullBuild_8items -Pbm=EquipSequenceJMH
 ```

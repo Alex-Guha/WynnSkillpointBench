@@ -43,12 +43,43 @@ jmh {
     if (project.hasProperty('bm')) {
         includes = [project.property('bm')]
     }
-    // To filter by algorithm/case, use the JMH jar directly:
-    //   ./gradlew jmhJar
-    //   java -jar build/libs/*-jmh.jar -p algoName=WynnAlgorithm -p caseName=case3_noRequirements
+    // For algo/case filtering, use jmhRun instead:
+    //   ./gradlew jmhRun -Palgo=WynnAlgorithm
+    //   ./gradlew jmhRun -Palgo=WynnAlgorithm,MyFirstAlgorithm -Pcase=case8_fullBuild_8items
 }
 
 tasks.named('jmh').configure {
+    finalizedBy 'jmhReport'
+}
+
+// Run filtered benchmarks: ./gradlew jmhRun -Palgo=WynnAlgorithm,MyFirstAlgorithm -Pcase=case8_fullBuild_8items
+// Also supports -Pbm=EquipSequenceJMH to select benchmark class
+tasks.register('jmhRun', JavaExec) {
+    dependsOn 'jmhJar'
+    description = 'Run JMH benchmarks with -Palgo/-Pcase filtering and summary report'
+    group = 'jmh'
+
+    def resultsFile = file("${project.buildDir}/results/jmh/results.json")
+
+    doFirst { resultsFile.parentFile.mkdirs() }
+
+    mainClass = 'org.openjdk.jmh.Main'
+    classpath = files({ fileTree("${project.buildDir}/libs").matching { include '*-jmh.jar' } })
+
+    // Default JMH settings matching the jmh {} block
+    args '-wi', '1', '-i', '3', '-f', '1', '-w', '200ms', '-r', '200ms',
+         '-tu', 'us', '-bm', 'avgt', '-rf', 'json', '-rff', resultsFile.absolutePath
+
+    if (project.hasProperty('algo')) {
+        args '-p', "algoName=${project.property('algo')}"
+    }
+    if (project.hasProperty('case')) {
+        args '-p', "caseName=${project.property('case')}"
+    }
+    if (project.hasProperty('bm')) {
+        args project.property('bm')
+    }
+
     finalizedBy 'jmhReport'
 }
 
