@@ -69,3 +69,13 @@ local.properties
 build/
 gradle.properties
 !gradle/wrapper/gradle-wrapper.jar
+
+# Python
+__pycache__/
+*.pyc
+
+# Generated / cached script outputs
+scripts/python/items.json
+scripts/python/builds.jsonl
+scripts/python/builds_noncraft.jsonl
+scripts/python/generated_cases.java
