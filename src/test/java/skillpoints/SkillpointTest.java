@@ -59,7 +59,8 @@ public class SkillpointTest {
                 Named.of("WynnSolver", new WynnSolverAlgorithm()),
                 Named.of("CascadeBound", new CascadeBoundChecker()),
                 Named.of("My First Algorithm", new MyFirstAlgorithm()),
-                Named.of("My Second Algorithm", new MySecondAlgorithm()));
+                Named.of("My Second Algorithm", new MySecondAlgorithm()),
+                Named.of("OurSecondAlgorithm", new OurSecondAlgorithm()));
     }
 
     static WynnItem[] cloneItems(WynnItem[] items) {

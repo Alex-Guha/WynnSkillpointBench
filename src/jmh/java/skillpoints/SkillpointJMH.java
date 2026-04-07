@@ -31,6 +31,7 @@ public class SkillpointJMH {
             "CascadeBound",
             "MyFirstAlgorithm",
             "MySecondAlgorithm",
+            "OurSecondAlgorithm",
     })
     String algoName;
 
@@ -78,6 +79,7 @@ public class SkillpointJMH {
             case "CascadeBound" -> new CascadeBoundChecker();
             case "MyFirstAlgorithm" -> new MyFirstAlgorithm();
             case "MySecondAlgorithm" -> new MySecondAlgorithm();
+            case "OurSecondAlgorithm" -> new OurSecondAlgorithm();
             default -> throw new IllegalArgumentException("Unknown algorithm: " + algoName);
         };
 
