@@ -11,31 +11,37 @@ Benchmark and correctness testing for Wynncraft skillpoint equip-ordering algori
 | MyFirstAlgorithm | 26 | 0 | 26 |
 | CascadeBoundChecker | 26 | 0 | 26 |
 | WynnSolverAlgorithm | 26 | 0 | 26 |
+| OurSecondAlgorithm | 26 | 0 | 26 |
 | MySecondAlgorithm | 26 | 0 | 26 |
 | WynnAlgorithm | 24 | 2 | 26 |
 | SCCGraphAlgorithm | 26 | 0 | 26 |
+| TheThirdAlgorithm | 26 | 0 | 26 |
 
 ### Equip Sequence Performance
 
 | Algorithm | Mean(us/op) | Median | Worst | vs 1st |
 |---|---:|---:|---:|---:|
-| MySecondAlgorithm | 7.966 | 7.492 | 13.019 | 1.0x |
-| MyFirstAlgorithm | 8.168 | 7.492 | 13.329 | 1.0x |
-| CascadeBound | 11.396 | 10.817 | 13.416 | 1.4x |
-| WynnAlgorithm | 41.007 | 39.947 | 99.208 | 5.1x |
-| SCCGraphAlgorithm | 55.176 | 52.314 | 83.981 | 6.9x |
-| WynnSolver | 55.315 | 21.025 | 311.931 | 6.9x |
+| TheThirdAlgorithm | 4.808 | 4.580 | 6.834 | 1.0x |
+| OurSecondAlgorithm | 5.838 | 5.364 | 9.686 | 1.2x |
+| MyFirstAlgorithm | 8.243 | 7.867 | 12.457 | 1.7x |
+| MySecondAlgorithm | 8.480 | 7.946 | 13.785 | 1.8x |
+| CascadeBound | 11.432 | 11.157 | 13.406 | 2.4x |
+| WynnAlgorithm | 35.366 | 24.262 | 76.917 | 7.4x |
+| WynnSolver | 53.988 | 20.766 | 306.829 | 11.2x |
+| SCCGraphAlgorithm | 57.009 | 52.482 | 90.986 | 11.9x |
 
 ### Unrepresentative Full Performance
 
 | Algorithm | Mean(us/op) | Median | Worst | vs 1st |
 |---|---:|---:|---:|---:|
-| MySecondAlgorithm | 0.056 | 0.060 | 0.112 | 1.0x |
-| MyFirstAlgorithm | 0.068 | 0.049 | 0.135 | 1.2x |
-| WynnSolver | 0.142 | 0.081 | 0.309 | 2.6x |
-| CascadeBound | 0.192 | 0.159 | 0.388 | 3.4x |
-| WynnAlgorithm | 0.647 | 0.474 | 3.222 | 11.6x |
-| SCCGraphAlgorithm | 0.946 | 0.834 | 3.361 | 17.0x |
+| TheThirdAlgorithm | 0.047 | 0.036 | 0.105 | 1.0x |
+| MySecondAlgorithm | 0.051 | 0.055 | 0.108 | 1.1x |
+| OurSecondAlgorithm | 0.054 | 0.058 | 0.103 | 1.1x |
+| MyFirstAlgorithm | 0.065 | 0.048 | 0.132 | 1.4x |
+| WynnSolver | 0.137 | 0.084 | 0.285 | 2.9x |
+| CascadeBound | 0.183 | 0.149 | 0.349 | 3.9x |
+| WynnAlgorithm | 0.583 | 0.468 | 2.124 | 12.4x |
+| SCCGraphAlgorithm | 0.969 | 0.809 | 3.518 | 20.6x |
 
 ## Skill Point Algorithm Bounty
 
@@ -120,7 +126,16 @@ Tests are in `src/test/java/skillpoints/SkillpointTest.java`. They use JUnit 5 p
 
 **Adding a test case:** add an entry to `TestCases.java` (shared between tests and benchmarks).
 
-**Adding an algorithm:** add an entry to `algorithms()` in `SkillpointTest.java` and to the `@Param` list in `SkillpointJMH.java`.
+**Adding an algorithm:**
+
+1. Create your class in `src/main/java/skillpoints/`, extending `SkillpointChecker`
+2. Add a `REGISTRY.put(...)` entry to `AlgorithmRegistry.java`
+3. Run tests and benchmarks:
+   ```bash
+   ./gradlew test
+   ./gradlew jmhRun -Palgo=YourAlgorithm
+   ./gradlew jmhRun -Palgo=YourAlgorithm -Pbm=EquipSequenceJMH
+   ```
 
 ## Benchmark
 
@@ -129,23 +144,23 @@ Benchmarking uses [JMH](https://github.com/openjdk/jmh) (Java Microbenchmark Har
 Default config: 1 fork, 1×200ms warmup, 3×200ms measurement, average time in microseconds.
 
 ```bash
-# Run all benchmarks (5 algos × 23 cases, ~1-1.5 min)
+# Run all benchmarks (7 algos × 23 cases, ~1-1.5 min)
 ./gradlew jmh
 
 # Clean first if you changed algorithm code (ensures no stale bytecode in the JMH jar)
 ./gradlew clean jmh
 
-# Build the JMH jar for more control over parameters
-./gradlew jmhJar
+# Run specific algorithm(s) — with summary report
+./gradlew jmhRun -Palgo=WynnAlgorithm
 
 # Run specific algorithm(s) and/or case(s)
-java -jar build/libs/*-jmh.jar -p algoName=WynnAlgorithm,WynnSolver -p caseName=case8_fullBuild_8items
+./gradlew jmhRun -Palgo=WynnAlgorithm,WynnSolver -Pcase=case8_fullBuild_8items
 
-# Quick iteration during development (fewer warmup/measurement iterations)
-java -jar build/libs/*-jmh.jar -wi 2 -i 3 -p algoName=WynnSolver
+# Run only a specific benchmark class (e.g. EquipSequenceJMH or SkillpointJMH)
+./gradlew jmhRun -Palgo=WynnSolver -Pbm=EquipSequenceJMH
 ```
 
-Results are written to `build/results/jmh/results.json`.
+Results are written to `build/results/jmh/results.json`. Both `jmh` and `jmhRun` print a summary report.
 
 ### Equip Sequence Benchmark
 
@@ -160,11 +175,11 @@ Each `@Benchmark` invocation runs all 8 permutations (64 total `check()` calls).
 
 ```bash
 # Run only equip-sequence benchmarks
-./gradlew jmh -Pbm="EquipSequenceJMH"
+./gradlew jmhRun -Pbm=EquipSequenceJMH
 
 # Run only the per-case benchmarks (original)
-./gradlew jmh -Pbm="SkillpointJMH"
+./gradlew jmhRun -Pbm=SkillpointJMH
 
-# Specific algo/case via the JMH jar
-java -jar build/libs/*-jmh.jar -p algoName=WynnSolver -p caseName=case8_fullBuild_8items "EquipSequenceJMH"
+# Specific algo + equip sequence
+./gradlew jmhRun -Palgo=WynnSolver -Pcase=case8_fullBuild_8items -Pbm=EquipSequenceJMH
 ```

@@ -32,14 +32,7 @@ public class EquipSequenceJMH {
 
     // ── Parameters ──────────────────────────────────────────────────────
 
-    @Param({
-            "WynnAlgorithm",
-            "SCCGraphAlgorithm",
-            "WynnSolver",
-            "CascadeBound",
-            "MyFirstAlgorithm",
-            "MySecondAlgorithm",
-    })
+    @Param({}) // populated automatically from AlgorithmRegistry via build.gradle
     String algoName;
 
     @Param({
@@ -70,15 +63,7 @@ public class EquipSequenceJMH {
 
     @Setup(Level.Trial)
     public void setup() {
-        checker = switch (algoName) {
-            case "WynnAlgorithm" -> new WynnAlgorithm();
-            case "SCCGraphAlgorithm" -> new SCCGraphAlgorithm();
-            case "WynnSolver" -> new WynnSolverAlgorithm();
-            case "CascadeBound" -> new CascadeBoundChecker();
-            case "MyFirstAlgorithm" -> new MyFirstAlgorithm();
-            case "MySecondAlgorithm" -> new MySecondAlgorithm();
-            default -> throw new IllegalArgumentException("Unknown algorithm: " + algoName);
-        };
+        checker = AlgorithmRegistry.create(algoName);
         needsClone = checker instanceof GreedyAlgorithm;
 
         var tc = TestCases.ALL.get(caseName);
@@ -96,7 +81,8 @@ public class EquipSequenceJMH {
         for (int p = 0; p < NUM_PERMUTATIONS; p++) {
             // Fisher-Yates shuffle
             int[] order = new int[n];
-            for (int i = 0; i < n; i++) order[i] = i;
+            for (int i = 0; i < n; i++)
+                order[i] = i;
             for (int i = n - 1; i > 0; i--) {
                 int j = rng.nextInt(i + 1);
                 int tmp = order[i];
