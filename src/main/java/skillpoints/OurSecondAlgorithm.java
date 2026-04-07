@@ -198,23 +198,13 @@ public class OurSecondAlgorithm extends SkillpointChecker
             pb[j] = pack5(bon[0], bon[1], bon[2], bon[3], bon[4]);
         }
 
-        // Build packed mask skills + maxNeed via SWAR
+        // BFS with lazy computation — only compute pmsk/weight/mn
+        // for masks that are actually reached, not all 2^n masks.
+        Arrays.fill(reachable, 0, totalMasks, false);
+        reachable[0] = true;
         pmsk[0] = pack5(skill0, skill1, skill2, skill3, skill4);
         weight[0] = 0;
         mn[0] = 0;
-
-        for (int mask = 1; mask < totalMasks; mask++)
-        {
-            int bit = Integer.numberOfTrailingZeros(mask);
-            int prev = mask ^ (1 << bit);
-            pmsk[mask] = pmsk[prev] + pb[bit] - BIAS5;
-            weight[mask] = weight[prev] + itemBonusSum[bit];
-            mn[mask] = max5(mn[prev], pn[bit]);
-        }
-
-        // BFS — every comparison is a single ge5 call
-        Arrays.fill(reachable, 0, totalMasks, false);
-        reachable[0] = true;
         int bestMask = 0, bestCount = 0, bestWeight = 0;
 
         for (int mask = 0; mask < totalMasks; mask++)
@@ -231,6 +221,8 @@ public class OurSecondAlgorithm extends SkillpointChecker
             if (bestCount == remainingCount) break;
 
             long curSk = pmsk[mask];
+            long curMn = mn[mask];
+            int curW = weight[mask];
 
             for (int j = 0; j < remainingCount; j++)
             {
@@ -238,11 +230,16 @@ public class OurSecondAlgorithm extends SkillpointChecker
                 int nextMask = mask | (1 << j);
                 if (reachable[nextMask]) continue;
                 if (!ge5(curSk, pr[j])) continue;
+                long nextSk = curSk + pb[j] - BIAS5;
                 if (hasNegativeBonus[j])
                 {
-                    if (!ge5(pmsk[nextMask], mn[mask])) continue;
+                    if (!ge5(nextSk, curMn)) continue;
                 }
+                // First reach of nextMask — store its data
                 reachable[nextMask] = true;
+                pmsk[nextMask] = nextSk;
+                weight[nextMask] = curW + itemBonusSum[j];
+                mn[nextMask] = max5(curMn, pn[j]);
             }
         }
 
