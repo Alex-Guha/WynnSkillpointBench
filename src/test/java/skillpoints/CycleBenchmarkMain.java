@@ -18,7 +18,7 @@ public final class CycleBenchmarkMain {
         int measureIterations = Integer.getInteger("skillpoints.iterations", DEFAULT_MEASURE_ITERATIONS);
 
         List<Named<SkillpointChecker>> algorithms = SkillpointTest.algorithms().toList();
-        List<Named<SkillpointTest.TestCase>> cases = SkillpointTest.testCases().toList();
+        List<Named<TestCases.TestCase>> cases = SkillpointTest.testCases().toList();
 
         List<Named<SkillpointChecker>> selectedAlgorithms = new ArrayList<>();
         for (Named<SkillpointChecker> algorithm : algorithms) {
@@ -45,28 +45,50 @@ public final class CycleBenchmarkMain {
 
     private static long runAlgorithm(
         SkillpointChecker checker,
-        List<Named<SkillpointTest.TestCase>> cases,
+        List<Named<TestCases.TestCase>> cases,
         int warmupIterations,
         int measureIterations
     ) {
+        WynnItem[][] itemsByCase = new WynnItem[cases.size()][];
+        int[][] assignedByCase = new int[cases.size()][];
+        for (int caseIndex = 0; caseIndex < cases.size(); caseIndex++) {
+            TestCases.TestCase testCase = cases.get(caseIndex).getPayload();
+            itemsByCase[caseIndex] = SkillpointTest.cloneItems(testCase.items());
+            assignedByCase[caseIndex] = testCase.assignedSkillpoints().clone();
+        }
+
         long checksum = 0;
         for (int iteration = 0; iteration < warmupIterations; iteration++) {
-            checksum += runCases(checker, cases);
+            checksum += runCases(checker, itemsByCase, assignedByCase);
         }
         for (int iteration = 0; iteration < measureIterations; iteration++) {
-            checksum += runCases(checker, cases);
+            checksum += runCases(checker, itemsByCase, assignedByCase);
         }
         return checksum;
     }
 
-    private static long runCases(SkillpointChecker checker, List<Named<SkillpointTest.TestCase>> cases) {
+    private static long runCases(SkillpointChecker checker, WynnItem[][] itemsByCase, int[][] assignedByCase) {
         long checksum = 0;
-        for (Named<SkillpointTest.TestCase> namedCase : cases) {
-            SkillpointTest.TestCase testCase = namedCase.getPayload();
-            boolean[] result = checker.check(testCase.items(), testCase.assignedSkillpoints().clone());
+        for (int caseIndex = 0; caseIndex < itemsByCase.length; caseIndex++) {
+            boolean[] result = runOnce(checker, itemsByCase, assignedByCase, caseIndex);
             checksum = checksum * 31 + encode(result);
         }
         return checksum;
+    }
+
+    private static boolean[] runOnce(
+        SkillpointChecker checker,
+        WynnItem[][] itemsByCase,
+        int[][] assignedByCase,
+        int caseIndex
+    ) {
+        if (checker instanceof GreedyAlgorithm) {
+            return checker.check(
+                SkillpointTest.cloneItems(itemsByCase[caseIndex]),
+                assignedByCase[caseIndex].clone()
+            );
+        }
+        return checker.check(itemsByCase[caseIndex], assignedByCase[caseIndex]);
     }
 
     private static int encode(boolean[] values) {

@@ -6,6 +6,9 @@ import java.util.Map;
 
 public final class CascadeBoundChecker extends SkillpointChecker {
     private final Map<WynnItem[], Prepared> preparedCache = new IdentityHashMap<>();
+    private int[] statsStack = new int[0];
+    private int[] needStack = new int[0];
+    private boolean[] visitedMask = new boolean[0];
 
     @Override
     public boolean[] check(WynnItem[] items, int[] assignedSkillpoints) {
@@ -15,26 +18,35 @@ public final class CascadeBoundChecker extends SkillpointChecker {
             preparedCache.put(items, prepared);
         }
 
-        int[] statsStack = new int[(prepared.itemCount + 1) * WynnItem.NUM_SKILLPOINTS];
-        int[] needStack = new int[(prepared.itemCount + 1) * WynnItem.NUM_SKILLPOINTS];
-        Arrays.fill(needStack, Integer.MIN_VALUE);
+        int stackLength = (prepared.itemCount + 1) * WynnItem.NUM_SKILLPOINTS;
+        if (statsStack.length < stackLength) {
+            statsStack = new int[stackLength];
+            needStack = new int[stackLength];
+        }
+        if (visitedMask.length < prepared.maskLimit) {
+            visitedMask = new boolean[prepared.maskLimit];
+        }
+        Arrays.fill(needStack, 0, stackLength, Integer.MIN_VALUE);
+        Arrays.fill(visitedMask, 0, prepared.maskLimit, false);
         for (int skill = 0; skill < WynnItem.NUM_SKILLPOINTS; skill++) {
-            statsStack[skill] = assignedSkillpoints[skill] + prepared.freePositiveBonuses[skill];
+            statsStack[skill] = assignedSkillpoints[skill];
         }
 
         SearchContext context = new SearchContext(
             prepared.itemCount,
+            prepared.maskLimit,
             prepared.fullMask,
             prepared.requirements,
             prepared.bonuses,
             prepared.reqPlusBonus,
             prepared.itemScores,
-            prepared.order,
+            prepared.forcedOrder,
+            prepared.forcedItemCount,
+            prepared.branchOrder,
+            prepared.branchItemCount,
             statsStack,
             needStack,
-            prepared.freePositiveMask,
-            prepared.freePositiveCount,
-            prepared.freePositiveScore
+            visitedMask
         );
         context.run();
 
@@ -45,21 +57,22 @@ public final class CascadeBoundChecker extends SkillpointChecker {
         return equipped;
     }
 
-    private static void sortOrder(int[] order, int[] sortKeys) {
-        for (int i = 1; i < order.length; i++) {
+    private static void sortOrder(int[] order, int[] sortKeys, int length) {
+        for (int i = 1; i < length; i++) {
             int current = order[i];
-            int currentKey = sortKeys[current];
+            int currentKey = sortKeys[i];
             int j = i - 1;
             while (j >= 0) {
-                int candidate = order[j];
-                int candidateKey = sortKeys[candidate];
-                if (candidateKey > currentKey || (candidateKey == currentKey && candidate < current)) {
+                int candidateKey = sortKeys[j];
+                if (candidateKey > currentKey || (candidateKey == currentKey && order[j] < current)) {
                     break;
                 }
-                order[j + 1] = candidate;
+                order[j + 1] = order[j];
+                sortKeys[j + 1] = candidateKey;
                 j--;
             }
             order[j + 1] = current;
+            sortKeys[j + 1] = currentKey;
         }
     }
 
@@ -70,11 +83,11 @@ public final class CascadeBoundChecker extends SkillpointChecker {
         private final int[] bonuses;
         private final int[] reqPlusBonus;
         private final int[] itemScores;
-        private final int[] order;
-        private final int freePositiveMask;
-        private final int freePositiveCount;
-        private final int freePositiveScore;
-        private final int[] freePositiveBonuses;
+        private final int[] forcedOrder;
+        private final int forcedItemCount;
+        private final int[] branchOrder;
+        private final int branchItemCount;
+        private final int maskLimit;
 
         private Prepared(
             int itemCount,
@@ -83,11 +96,11 @@ public final class CascadeBoundChecker extends SkillpointChecker {
             int[] bonuses,
             int[] reqPlusBonus,
             int[] itemScores,
-            int[] order,
-            int freePositiveMask,
-            int freePositiveCount,
-            int freePositiveScore,
-            int[] freePositiveBonuses
+            int[] forcedOrder,
+            int forcedItemCount,
+            int[] branchOrder,
+            int branchItemCount,
+            int maskLimit
         ) {
             this.itemCount = itemCount;
             this.fullMask = fullMask;
@@ -95,11 +108,11 @@ public final class CascadeBoundChecker extends SkillpointChecker {
             this.bonuses = bonuses;
             this.reqPlusBonus = reqPlusBonus;
             this.itemScores = itemScores;
-            this.order = order;
-            this.freePositiveMask = freePositiveMask;
-            this.freePositiveCount = freePositiveCount;
-            this.freePositiveScore = freePositiveScore;
-            this.freePositiveBonuses = freePositiveBonuses;
+            this.forcedOrder = forcedOrder;
+            this.forcedItemCount = forcedItemCount;
+            this.branchOrder = branchOrder;
+            this.branchItemCount = branchItemCount;
+            this.maskLimit = maskLimit;
         }
 
         private static Prepared create(WynnItem[] items) {
@@ -108,19 +121,29 @@ public final class CascadeBoundChecker extends SkillpointChecker {
             int[] bonuses = new int[itemCount * WynnItem.NUM_SKILLPOINTS];
             int[] reqPlusBonus = new int[itemCount * WynnItem.NUM_SKILLPOINTS];
             int[] itemScores = new int[itemCount];
-            int[] order = new int[itemCount];
-            int[] sortKeys = new int[itemCount];
-            int freePositiveMask = 0;
-            int freePositiveCount = 0;
-            int freePositiveScore = 0;
-            int[] freePositiveBonuses = new int[WynnItem.NUM_SKILLPOINTS];
+            int[] forcedOrder = new int[itemCount];
+            int[] forcedSortKeys = new int[itemCount];
+            int forcedItemCount = 0;
+            int[] branchOrder = new int[itemCount];
+            int[] branchSortKeys = new int[itemCount];
+            int branchItemCount = 0;
+            boolean[] riskySkill = new boolean[WynnItem.NUM_SKILLPOINTS];
+
+            for (int itemIndex = 0; itemIndex < itemCount; itemIndex++) {
+                WynnItem item = items[itemIndex];
+                for (int skill = 0; skill < WynnItem.NUM_SKILLPOINTS; skill++) {
+                    if (item.bonuses[skill] < 0) {
+                        riskySkill[skill] = true;
+                    }
+                }
+            }
 
             for (int itemIndex = 0; itemIndex < itemCount; itemIndex++) {
                 WynnItem item = items[itemIndex];
                 int offset = itemIndex * WynnItem.NUM_SKILLPOINTS;
                 int score = 0;
-                boolean hasRequirement = false;
                 boolean hasNegativeBonus = false;
+                boolean requiresRiskySkill = false;
                 int requirementSum = 0;
                 int positiveBonusSum = 0;
                 int negativeBonusMagnitude = 0;
@@ -134,9 +157,11 @@ public final class CascadeBoundChecker extends SkillpointChecker {
                     reqPlusBonus[offset + skill] = requirement == 0 ? Integer.MIN_VALUE : requirement + bonus;
                     score += bonus;
                     if (requirement != 0) {
-                        hasRequirement = true;
                         requirementSum += requirement;
                         requiredStats++;
+                        if (riskySkill[skill]) {
+                            requiresRiskySkill = true;
+                        }
                     }
                     if (bonus < 0) {
                         hasNegativeBonus = true;
@@ -147,24 +172,22 @@ public final class CascadeBoundChecker extends SkillpointChecker {
                 }
 
                 itemScores[itemIndex] = score;
-                order[itemIndex] = itemIndex;
-                sortKeys[itemIndex] = (hasNegativeBonus ? 1 << 30 : 0)
-                    + (requiredStats << 24)
+                int sortKey = (requiredStats << 24)
                     + (requirementSum << 8)
                     + Math.min(255, positiveBonusSum + negativeBonusMagnitude);
-
-                if (!hasRequirement && !hasNegativeBonus) {
-                    int itemBit = 1 << itemIndex;
-                    freePositiveMask |= itemBit;
-                    freePositiveCount++;
-                    freePositiveScore += score;
-                    for (int skill = 0; skill < WynnItem.NUM_SKILLPOINTS; skill++) {
-                        freePositiveBonuses[skill] += bonuses[offset + skill];
-                    }
+                if (hasNegativeBonus || requiresRiskySkill) {
+                    branchOrder[branchItemCount] = itemIndex;
+                    branchSortKeys[branchItemCount] = sortKey + (1 << 30);
+                    branchItemCount++;
+                } else {
+                    forcedOrder[forcedItemCount] = itemIndex;
+                    forcedSortKeys[forcedItemCount] = sortKey;
+                    forcedItemCount++;
                 }
             }
 
-            sortOrder(order, sortKeys);
+            sortOrder(forcedOrder, forcedSortKeys, forcedItemCount);
+            sortOrder(branchOrder, branchSortKeys, branchItemCount);
             return new Prepared(
                 itemCount,
                 (1 << itemCount) - 1,
@@ -172,25 +195,30 @@ public final class CascadeBoundChecker extends SkillpointChecker {
                 bonuses,
                 reqPlusBonus,
                 itemScores,
-                order,
-                freePositiveMask,
-                freePositiveCount,
-                freePositiveScore,
-                freePositiveBonuses
+                forcedOrder,
+                forcedItemCount,
+                branchOrder,
+                branchItemCount,
+                1 << itemCount
             );
         }
     }
 
     private static final class SearchContext {
         private final int itemCount;
+        private final int maskLimit;
         private final int fullMask;
         private final int[] requirements;
         private final int[] bonuses;
         private final int[] reqPlusBonus;
         private final int[] itemScores;
-        private final int[] order;
+        private final int[] forcedOrder;
+        private final int forcedItemCount;
+        private final int[] branchOrder;
+        private final int branchItemCount;
         private final int[] statsStack;
         private final int[] needStack;
+        private final boolean[] visitedMask;
 
         private int bestMask;
         private int bestCount;
@@ -198,39 +226,49 @@ public final class CascadeBoundChecker extends SkillpointChecker {
 
         private SearchContext(
             int itemCount,
+            int maskLimit,
             int fullMask,
             int[] requirements,
             int[] bonuses,
             int[] reqPlusBonus,
             int[] itemScores,
-            int[] order,
+            int[] forcedOrder,
+            int forcedItemCount,
+            int[] branchOrder,
+            int branchItemCount,
             int[] statsStack,
             int[] needStack,
-            int startMask,
-            int startCount,
-            int startScore
+            boolean[] visitedMask
         ) {
             this.itemCount = itemCount;
+            this.maskLimit = maskLimit;
             this.fullMask = fullMask;
             this.requirements = requirements;
             this.bonuses = bonuses;
             this.reqPlusBonus = reqPlusBonus;
             this.itemScores = itemScores;
-            this.order = order;
+            this.forcedOrder = forcedOrder;
+            this.forcedItemCount = forcedItemCount;
+            this.branchOrder = branchOrder;
+            this.branchItemCount = branchItemCount;
             this.statsStack = statsStack;
             this.needStack = needStack;
-            this.bestMask = startMask;
-            this.bestCount = startCount;
-            this.bestScore = startScore;
+            this.visitedMask = visitedMask;
         }
 
         private void run() {
-            if (bestMask != fullMask) {
-                dfs(bestMask, 0, bestCount, bestScore, itemCount - bestCount);
+            int startMask = applyForcedClosure(0, 0, 0, 0);
+            int startCount = Integer.bitCount(startMask);
+            int startScore = scoreMask(startMask);
+            bestMask = startMask;
+            bestCount = startCount;
+            bestScore = startScore;
+            if (startMask != fullMask) {
+                dfs(startMask, 0, startCount, startScore);
             }
         }
 
-        private boolean dfs(int mask, int depth, int count, int score, int remainingCount) {
+        private boolean dfs(int mask, int depth, int count, int score) {
             if (count > bestCount || (count == bestCount && (score > bestScore || (score == bestScore && mask < bestMask)))) {
                 bestMask = mask;
                 bestCount = count;
@@ -239,17 +277,21 @@ public final class CascadeBoundChecker extends SkillpointChecker {
             if (mask == fullMask) {
                 return true;
             }
-            if (count + remainingCount < bestCount) {
+            if (count + (itemCount - count) < bestCount) {
                 return false;
             }
+            if (visitedMask[mask]) {
+                return false;
+            }
+            visitedMask[mask] = true;
 
             int statsOffset = depth * WynnItem.NUM_SKILLPOINTS;
             int nextStatsOffset = (depth + 1) * WynnItem.NUM_SKILLPOINTS;
             int needOffset = depth * WynnItem.NUM_SKILLPOINTS;
             int nextNeedOffset = (depth + 1) * WynnItem.NUM_SKILLPOINTS;
 
-            for (int position = 0; position < itemCount; position++) {
-                int itemIndex = order[position];
+            for (int position = 0; position < branchItemCount; position++) {
+                int itemIndex = branchOrder[position];
                 int itemBit = 1 << itemIndex;
                 if ((mask & itemBit) != 0) {
                     continue;
@@ -294,14 +336,86 @@ public final class CascadeBoundChecker extends SkillpointChecker {
                 needStack[nextNeedOffset + 3] = need3;
                 needStack[nextNeedOffset + 4] = need4;
 
-                int nextMask = mask | itemBit;
-                int nextCount = count + 1;
-                int nextScore = score + itemScores[itemIndex];
-                if (dfs(nextMask, depth + 1, nextCount, nextScore, remainingCount - 1)) {
+                int nextMask = applyForcedClosure(mask | itemBit, depth + 1, count + 1, score + itemScores[itemIndex]);
+                int nextCount = Integer.bitCount(nextMask);
+                int nextScore = scoreMask(nextMask);
+                if (dfs(nextMask, depth + 1, nextCount, nextScore)) {
                     return true;
                 }
             }
             return false;
+        }
+
+        private int applyForcedClosure(int mask, int depth, int count, int score) {
+            int currentOffset = depth * WynnItem.NUM_SKILLPOINTS;
+            boolean changed;
+            do {
+                changed = false;
+                int current0 = statsStack[currentOffset];
+                int current1 = statsStack[currentOffset + 1];
+                int current2 = statsStack[currentOffset + 2];
+                int current3 = statsStack[currentOffset + 3];
+                int current4 = statsStack[currentOffset + 4];
+                int need0 = needStack[currentOffset];
+                int need1 = needStack[currentOffset + 1];
+                int need2 = needStack[currentOffset + 2];
+                int need3 = needStack[currentOffset + 3];
+                int need4 = needStack[currentOffset + 4];
+
+                for (int position = 0; position < forcedItemCount; position++) {
+                    int itemIndex = forcedOrder[position];
+                    int itemBit = 1 << itemIndex;
+                    if ((mask & itemBit) != 0) {
+                        continue;
+                    }
+
+                    int itemOffset = itemIndex * WynnItem.NUM_SKILLPOINTS;
+                    if ((requirements[itemOffset] != 0 && requirements[itemOffset] > current0)
+                        || (requirements[itemOffset + 1] != 0 && requirements[itemOffset + 1] > current1)
+                        || (requirements[itemOffset + 2] != 0 && requirements[itemOffset + 2] > current2)
+                        || (requirements[itemOffset + 3] != 0 && requirements[itemOffset + 3] > current3)
+                        || (requirements[itemOffset + 4] != 0 && requirements[itemOffset + 4] > current4)) {
+                        continue;
+                    }
+
+                    current0 += bonuses[itemOffset];
+                    current1 += bonuses[itemOffset + 1];
+                    current2 += bonuses[itemOffset + 2];
+                    current3 += bonuses[itemOffset + 3];
+                    current4 += bonuses[itemOffset + 4];
+                    need0 = Math.max(need0, reqPlusBonus[itemOffset]);
+                    need1 = Math.max(need1, reqPlusBonus[itemOffset + 1]);
+                    need2 = Math.max(need2, reqPlusBonus[itemOffset + 2]);
+                    need3 = Math.max(need3, reqPlusBonus[itemOffset + 3]);
+                    need4 = Math.max(need4, reqPlusBonus[itemOffset + 4]);
+                    mask |= itemBit;
+                    count++;
+                    score += itemScores[itemIndex];
+                    changed = true;
+                }
+
+                statsStack[currentOffset] = current0;
+                statsStack[currentOffset + 1] = current1;
+                statsStack[currentOffset + 2] = current2;
+                statsStack[currentOffset + 3] = current3;
+                statsStack[currentOffset + 4] = current4;
+                needStack[currentOffset] = need0;
+                needStack[currentOffset + 1] = need1;
+                needStack[currentOffset + 2] = need2;
+                needStack[currentOffset + 3] = need3;
+                needStack[currentOffset + 4] = need4;
+            } while (changed);
+            return mask;
+        }
+
+        private int scoreMask(int mask) {
+            int score = 0;
+            for (int itemIndex = 0; itemIndex < itemCount; itemIndex++) {
+                if ((mask & (1 << itemIndex)) != 0) {
+                    score += itemScores[itemIndex];
+                }
+            }
+            return score;
         }
     }
 }
