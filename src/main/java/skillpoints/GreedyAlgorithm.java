@@ -56,10 +56,9 @@ public class GreedyAlgorithm extends SkillpointChecker {
                     break;
                 }
             }
-            if (!hasNegative[i] && (!hasRequirements)) {
+            if (!hasNegative[i] && !hasRequirements) {
                 output[i] = true;
                 assignedSkillpoints = applyBonuses(assignedSkillpoints, item.bonuses);
-                minimums = updateMinimums(minimums, item);
                 continue;
             } else {
                 output[i] = false;
@@ -72,24 +71,31 @@ public class GreedyAlgorithm extends SkillpointChecker {
             }
         }
 
-        boolean changes;
-        do {
-            changes = false;
+        while (true) {
+            int best = -1;
+            int bestScore = -1;
             for (int i = 0; i < items.length; i++) {
                 if (output[i]) continue;
                 WynnItem item = items[i];
                 if (meetsReqs(assignedSkillpoints, item.requirements)) {
-                    if (hasNegative[i]) {
-                        int[] post = applyBonuses(assignedSkillpoints, item.bonuses);
-                        if (!meetsReqs(post, minimums)) continue;
+                    int[] post = applyBonuses(assignedSkillpoints, item.bonuses);
+                    if (!meetsReqs(post, minimums)) continue;
+                    int score = 0;
+                    for (int j = 0; j < items.length; j++) {
+                        if (i == j || output[j]) continue;
+                        if (meetsReqs(post, items[j].requirements)) score++;
                     }
-                    output[i] = true;
-                    assignedSkillpoints = applyBonuses(assignedSkillpoints, item.bonuses);
-                    minimums = updateMinimums(minimums, item);
-                    changes = true;
+                    if (score > bestScore) {
+                        bestScore = score;
+                        best = i;
+                    }
                 }
             }
-        } while (changes);
+            if (best == -1) break;
+            output[best] = true;
+            assignedSkillpoints = applyBonuses(assignedSkillpoints, items[best].bonuses);
+            minimums = updateMinimums(minimums, items[best]);
+        }
 
         return output;
     }
