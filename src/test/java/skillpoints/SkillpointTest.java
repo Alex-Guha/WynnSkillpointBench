@@ -53,12 +53,17 @@ public class SkillpointTest {
     // -- Algorithms under test ---------------------------------------------
 
     static Stream<Named<SkillpointChecker>> algorithms() {
-        return Stream.of(
-                Named.of("WynnAlgorithm", new WynnAlgorithm()),
-                Named.of("SCCGraphAlgorithm", new SCCGraphAlgorithm()),
-                Named.of("OptimizedDFS", new OptimizedDFSChecker()),
-                Named.of("WynnSolver", new WynnSolverAlgorithm()),
-                Named.of("GreedyAlgorithm", new GreedyAlgorithm()));
+        return AlgorithmRegistry.all().entrySet().stream()
+                .map(e -> Named.of(e.getKey(), e.getValue().get()));
+    }
+
+    static WynnItem[] cloneItems(WynnItem[] items) {
+        WynnItem[] cloned = new WynnItem[items.length];
+        for (int index = 0; index < items.length; index++) {
+            WynnItem item = items[index];
+            cloned[index] = new WynnItem(item.requirements.clone(), item.bonuses.clone());
+        }
+        return cloned;
     }
 
     // -- Test cases (shared with JMH benchmark in TestCases.java) -----------
@@ -81,7 +86,7 @@ public class SkillpointTest {
     void testEquipResult(SkillpointChecker checker, TestCases.TestCase tc) {
         String algoName = checker.getClass().getSimpleName();
 
-        boolean[] result = checker.check(tc.items(), tc.assignedSkillpoints().clone());
+        boolean[] result = checker.check(cloneItems(tc.items()), tc.assignedSkillpoints().clone());
 
         boolean passed = Arrays.equals(tc.expectedEquippable(), result);
         if (passed) {

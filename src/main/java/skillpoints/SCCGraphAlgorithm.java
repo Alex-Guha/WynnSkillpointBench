@@ -391,6 +391,11 @@ public class SCCGraphAlgorithm extends SkillpointChecker {
 	public OptimizationContext ctx = new OptimizationContext();
 
 	@Override
+	public void clearCache() {
+		ctx = new OptimizationContext();
+	}
+
+	@Override
 	public boolean[] check(WynnItem[] items, int[] assignedSkillpoints) {
 		// TODO: Filter items
 		List<WynnItem> toCheck = new ArrayList<WynnItem>();
