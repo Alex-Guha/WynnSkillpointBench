@@ -3,6 +3,7 @@ package skillpoints;
 import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.function.Supplier;
+
 /**
  * Single source of truth for all skillpoint algorithms.
  *
@@ -14,17 +15,16 @@ public final class AlgorithmRegistry {
     private static final LinkedHashMap<String, Supplier<SkillpointChecker>> REGISTRY = new LinkedHashMap<>();
 
     static {
-        REGISTRY.put("WynnAlgorithm",      WynnAlgorithm::new);
-        REGISTRY.put("SCCGraphAlgorithm",   SCCGraphAlgorithm::new);
-        REGISTRY.put("WynnSolver",          WynnSolverAlgorithm::new);
-        REGISTRY.put("CascadeBound",        CascadeBoundChecker::new);
-        REGISTRY.put("MyFirstAlgorithm",    MyFirstAlgorithm::new);
-        REGISTRY.put("MySecondAlgorithm",   MySecondAlgorithm::new);
-        REGISTRY.put("TheThirdAlgorithm",   TheThirdAlgorithm::new);
-        REGISTRY.put("OurSecondAlgorithm",  OurSecondAlgorithm::new);
-        REGISTRY.put("CachingThirdAlgorithm", CachingThirdAlgorithm::new);
+        REGISTRY.put("WynnAlgorithm", WynnAlgorithm::new);
+        REGISTRY.put("SCCGraphAlgorithm", SCCGraphAlgorithm::new);
+        REGISTRY.put("WynnSolver", WynnSolverAlgorithm::new);
+        REGISTRY.put("CascadeBound", CascadeBoundChecker::new);
+        REGISTRY.put("MyFirstAlgorithm", MyFirstAlgorithm::new);
+        REGISTRY.put("MySecondAlgorithm", MySecondAlgorithm::new);
+        REGISTRY.put("TheThirdAlgorithm", TheThirdAlgorithm::new);
+        REGISTRY.put("OurSecondAlgorithm", OurSecondAlgorithm::new);
         REGISTRY.put("TheFourthAlgorithm", TheFourthAlgorithm::new);
-        REGISTRY.put("GreedyAlgorithm",     GreedyAlgorithm::new);
+        REGISTRY.put("GreedyAlgorithm", GreedyAlgorithm::new);
     }
 
     /** Create a checker by its registered name. */

@@ -6,17 +6,15 @@ import org.openjdk.jmh.annotations.*;
 import org.openjdk.jmh.infra.Blackhole;
 
 /**
- * JMH benchmark simulating realistic item-by-item equipping.
+ * JMH benchmark simulating incremental skill-point allocation.
  *
- * For each full-build (8-item) test case, generates 8 seeded random
- * permutations of equip order. Each benchmark invocation runs all 8
- * permutations; for each permutation, items are added one at a time
- * (8 incremental check() calls). Cache is preserved within a permutation
- * but cleared between permutations.
+ * Starting from zero assigned skill points, adds 1 point at a time in
+ * round-robin order across attributes until the full allocation defined
+ * by the test case is reached. The algorithm is re-run after every
+ * single point change.
  *
- * This models the real scenario: a player equips items one at a time,
- * and the algorithm reruns on each equip. Adding a new build case is
- * just adding an 8-item entry to TestCases.java and listing it here.
+ * This models the scenario where a player adjusts their skill-point
+ * build one point at a time and the server re-validates on each change.
  */
 @BenchmarkMode(Mode.AverageTime)
 @OutputTimeUnit(TimeUnit.MICROSECONDS)
@@ -24,10 +22,7 @@ import org.openjdk.jmh.infra.Blackhole;
 @Measurement(iterations = 3, time = 200, timeUnit = TimeUnit.MILLISECONDS)
 @Fork(1)
 @State(Scope.Thread)
-public class EquipSequenceJMH {
-
-    static final int NUM_PERMUTATIONS = 8;
-    static final long SEED = 42L;
+public class SkillPointChangeJMH {
 
     // ── Parameters ──────────────────────────────────────────────────────
 
@@ -50,9 +45,9 @@ public class EquipSequenceJMH {
     // ── Resolved state ──────────────────────────────────────────────────
 
     private SkillpointChecker checker;
-    private int[] assignedSkillpoints;
     private boolean needsClone;
-    private WynnItem[][][] permutationSteps;
+    private WynnItem[] items;
+    private int[][] spSteps;
 
     @Setup(Level.Trial)
     public void setup() {
@@ -63,12 +58,13 @@ public class EquipSequenceJMH {
         if (tc == null)
             throw new IllegalArgumentException("Unknown test case: " + caseName);
 
-        assignedSkillpoints = tc.assignedSkillpoints();
-        permutationSteps = BenchOps.buildEquipPermutations(tc.items(), SEED, NUM_PERMUTATIONS);
+        // Pre-clone items once (they don't change across SP steps)
+        items = SkillpointTest.cloneItems(tc.items());
+        spSteps = BenchOps.buildSpIncrements(tc.assignedSkillpoints());
     }
 
     @Benchmark
     public void bench(Blackhole bh) {
-        BenchOps.runEquipSequence(checker, permutationSteps, assignedSkillpoints, needsClone, true, bh);
+        BenchOps.runSpChange(checker, items, spSteps, needsClone, true, bh);
     }
 }

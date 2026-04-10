@@ -12,7 +12,13 @@ public final class TestCases {
             String name,
             WynnItem[] items,
             int[] assignedSkillpoints,
-            boolean[] expectedEquippable) {
+            boolean[][] acceptableResults) {
+
+        /** Convenience: single expected result. */
+        public TestCase(String name, WynnItem[] items, int[] assignedSkillpoints,
+                boolean[] expectedEquippable) {
+            this(name, items, assignedSkillpoints, new boolean[][] { expectedEquippable });
+        }
     }
 
     /** All test cases, keyed by name. Insertion-ordered. */
@@ -277,16 +283,32 @@ public final class TestCases {
                 new int[] { 0, 48, 0, 48, 0 },
                 new boolean[] { true });
 
-        add("case21_repurposedVessels_fail",
+        add("case21_repurposedVessels_2",
                 new WynnItem[] {
                         new WynnItem(new int[] { 0, 45, 0, 45, 0 }, new int[] { 30, -3, -3, -3, -3 }),
                 },
                 new int[] { 0, 45, 0, 45, 0 },
                 new boolean[] { true });
+
+        add("case22_double_tie",
+                new WynnItem[] {
+                        new WynnItem(new int[] { 0, 0, 0, 0, 0 }, new int[] { -15, 0, 10, 0, 0 }),
+                        new WynnItem(new int[] { 0, 0, 0, 0, 0 }, new int[] { 10, 0, -15, 0, 0 }),
+                        new WynnItem(new int[] { 0, 0, 10, 0, 0 }, new int[] { 0, 0, 0, 0, 0 }),
+                        new WynnItem(new int[] { 10, 0, 0, 0, 0 }, new int[] { 0, 0, 0, 0, 0 }),
+                },
+                new int[] { 10, 0, 10, 0, 0 },
+                new boolean[] { false, true, false, true },
+                new boolean[] { false, false, true, true },
+                new boolean[] { true, false, true, false });
     }
 
     private static void add(String name, WynnItem[] items, int[] sp, boolean[] expected) {
         ALL.put(name, new TestCase(name, items, sp, expected));
+    }
+
+    private static void add(String name, WynnItem[] items, int[] sp, boolean[]... acceptableResults) {
+        ALL.put(name, new TestCase(name, items, sp, acceptableResults));
     }
 
     private TestCases() {

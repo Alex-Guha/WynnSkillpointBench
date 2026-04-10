@@ -6,17 +6,11 @@ import org.openjdk.jmh.annotations.*;
 import org.openjdk.jmh.infra.Blackhole;
 
 /**
- * JMH benchmark simulating realistic item-by-item equipping.
+ * JMH benchmark simulating a weapon swap.
  *
- * For each full-build (8-item) test case, generates 8 seeded random
- * permutations of equip order. Each benchmark invocation runs all 8
- * permutations; for each permutation, items are added one at a time
- * (8 incremental check() calls). Cache is preserved within a permutation
- * but cleared between permutations.
- *
- * This models the real scenario: a player equips items one at a time,
- * and the algorithm reruns on each equip. Adding a new build case is
- * just adding an 8-item entry to TestCases.java and listing it here.
+ * Takes a full build and re-runs the algorithm for the same equipment,
+ * modelling the common case where a player swaps to a weapon and the
+ * server must re-validate the entire build.
  */
 @BenchmarkMode(Mode.AverageTime)
 @OutputTimeUnit(TimeUnit.MICROSECONDS)
@@ -24,10 +18,7 @@ import org.openjdk.jmh.infra.Blackhole;
 @Measurement(iterations = 3, time = 200, timeUnit = TimeUnit.MILLISECONDS)
 @Fork(1)
 @State(Scope.Thread)
-public class EquipSequenceJMH {
-
-    static final int NUM_PERMUTATIONS = 8;
-    static final long SEED = 42L;
+public class WeaponSwapJMH {
 
     // ── Parameters ──────────────────────────────────────────────────────
 
@@ -50,9 +41,9 @@ public class EquipSequenceJMH {
     // ── Resolved state ──────────────────────────────────────────────────
 
     private SkillpointChecker checker;
-    private int[] assignedSkillpoints;
     private boolean needsClone;
-    private WynnItem[][][] permutationSteps;
+    private WynnItem[] items;
+    private int[] assignedSkillpoints;
 
     @Setup(Level.Trial)
     public void setup() {
@@ -63,12 +54,12 @@ public class EquipSequenceJMH {
         if (tc == null)
             throw new IllegalArgumentException("Unknown test case: " + caseName);
 
+        items = SkillpointTest.cloneItems(tc.items());
         assignedSkillpoints = tc.assignedSkillpoints();
-        permutationSteps = BenchOps.buildEquipPermutations(tc.items(), SEED, NUM_PERMUTATIONS);
     }
 
     @Benchmark
     public void bench(Blackhole bh) {
-        BenchOps.runEquipSequence(checker, permutationSteps, assignedSkillpoints, needsClone, true, bh);
+        BenchOps.runWeaponSwap(checker, items, assignedSkillpoints, needsClone, true, bh);
     }
 }

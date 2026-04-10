@@ -5,6 +5,7 @@ import static org.junit.jupiter.api.Assertions.*;
 import java.util.Arrays;
 import java.util.LinkedHashMap;
 import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.Stream;
@@ -53,8 +54,14 @@ public class SkillpointTest {
     // -- Algorithms under test ---------------------------------------------
 
     static Stream<Named<SkillpointChecker>> algorithms() {
-        return AlgorithmRegistry.all().entrySet().stream()
-                .map(e -> Named.of(e.getKey(), e.getValue().get()));
+        Stream<Map.Entry<String, java.util.function.Supplier<SkillpointChecker>>> stream =
+                AlgorithmRegistry.all().entrySet().stream();
+        String algoProp = System.getProperty("test.algo");
+        if (algoProp != null) {
+            Set<String> allowed = Set.of(algoProp.split(","));
+            stream = stream.filter(e -> allowed.contains(e.getKey()));
+        }
+        return stream.map(e -> Named.of(e.getKey(), e.getValue().get()));
     }
 
     static WynnItem[] cloneItems(WynnItem[] items) {
@@ -88,13 +95,22 @@ public class SkillpointTest {
 
         boolean[] result = checker.check(cloneItems(tc.items()), tc.assignedSkillpoints().clone());
 
-        boolean passed = Arrays.equals(tc.expectedEquippable(), result);
+        boolean passed = false;
+        for (boolean[] acceptable : tc.acceptableResults()) {
+            if (Arrays.equals(acceptable, result)) {
+                passed = true;
+                break;
+            }
+        }
+
         if (passed) {
             System.out.printf("[%s / %s] PASS%n", algoName, tc.name());
         } else {
+            String expectedStr = tc.acceptableResults().length == 1
+                    ? Arrays.toString(tc.acceptableResults()[0])
+                    : Arrays.deepToString(tc.acceptableResults());
             System.out.printf("[%s / %s] FAIL%n    expected: %s%n    actual:   %s%n",
-                    algoName, tc.name(),
-                    Arrays.toString(tc.expectedEquippable()), Arrays.toString(result));
+                    algoName, tc.name(), expectedStr, Arrays.toString(result));
         }
 
         if (passed) {
@@ -103,8 +119,14 @@ public class SkillpointTest {
             failures.computeIfAbsent(algoName, k -> new AtomicInteger()).incrementAndGet();
         }
 
-        assertArrayEquals(tc.expectedEquippable(), result,
-                () -> "Case '" + tc.name() + "': expected " + Arrays.toString(tc.expectedEquippable())
-                        + " but got " + Arrays.toString(result));
+        boolean finalPassed = passed;
+        assertTrue(finalPassed,
+                () -> {
+                    String expectedStr = tc.acceptableResults().length == 1
+                            ? Arrays.toString(tc.acceptableResults()[0])
+                            : Arrays.deepToString(tc.acceptableResults());
+                    return "Case '" + tc.name() + "': expected " + expectedStr
+                            + " but got " + Arrays.toString(result);
+                });
     }
 }

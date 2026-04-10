@@ -168,4 +168,9 @@ test {
         events "passed", "skipped", "failed"
         showStandardStreams = true
     }
+    // Filter by algorithm: ./gradlew test -Palgo=WynnAlgorithm
+    // Comma-separated: ./gradlew test -Palgo=WynnAlgorithm,MyFirstAlgorithm
+    if (project.hasProperty('algo')) {
+        systemProperty 'test.algo', project.property('algo')
+    }
 }
