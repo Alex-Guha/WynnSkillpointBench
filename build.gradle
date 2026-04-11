@@ -118,7 +118,7 @@ tasks.register('jmhReport') {
             byAlgo[algo] << [caseName: caseName, score: score, error: error, unit: unit]
         }
 
-        def unit = results[0].primaryMetric.scoreUnit ?: 'us/op'
+        def unit = results[0].primaryMetric.scoreUnit ?: 'us/run'
 
         println "\n${'=' * 72}"
         println "  ALGORITHM SUMMARY REPORT"
@@ -172,5 +172,9 @@ test {
     // Comma-separated: ./gradlew test -Palgo=WynnAlgorithm,MyFirstAlgorithm
     if (project.hasProperty('algo')) {
         systemProperty 'test.algo', project.property('algo')
+    }
+    // Filter by test case set: ./gradlew test -Pcases=curated  (or: generated)
+    if (project.hasProperty('cases')) {
+        systemProperty 'test.cases', project.property('cases')
     }
 }

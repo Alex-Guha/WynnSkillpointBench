@@ -21,7 +21,7 @@ Benchmark and correctness testing for Wynncraft skillpoint equip-ordering algori
 
 ### Performance (ServerSimJMH)
 
-| Algorithm | Mean(us/op) | Median | Worst | vs 1st |
+| Algorithm | Mean(us/run) | Median | Worst | vs 1st |
 |---|---:|---:|---:|---:|
 | TheThirdAlgorithm | 918.711 | 924.964 | 945.626 | 1.0x |
 | TheFourthAlgorithm | 919.826 | 910.667 | 940.139 | 1.0x |
@@ -145,7 +145,15 @@ If your default Java is not 21, prefix commands with `JAVA_HOME=/usr/lib/jvm/jav
 
 Tests are in `src/test/java/skillpoints/SkillpointTest.java`. They use JUnit 5 parameterized tests — every test case runs against every algorithm.
 
-**Adding a test case:** add an entry to `TestCases.java` (shared between tests and benchmarks).
+**Adding a test case:** add an entry to `TestCases.java` (hand-written, curated cases shared between tests and benchmarks).
+
+**Auto-generated test cases** live in `GeneratedTestCases.java` — these are produced by the python scripts in `scripts/python/` and are run automatically alongside the hand-written cases via `./gradlew test`. To run only one set:
+
+```bash
+./gradlew test -Pcases=curated    # only hand-written TestCases
+./gradlew test -Pcases=generated  # only GeneratedTestCases
+./gradlew test                    # both (default)
+```
 
 **Adding an algorithm:**
 

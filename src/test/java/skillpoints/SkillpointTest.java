@@ -76,8 +76,18 @@ public class SkillpointTest {
     // -- Test cases (shared with JMH benchmark in TestCases.java) -----------
 
     static Stream<Named<TestCases.TestCase>> testCases() {
-        return TestCases.ALL.entrySet().stream()
-                .map(e -> Named.of(e.getKey(), e.getValue()));
+        String casesProp = System.getProperty("test.cases");
+        Stream<Map.Entry<String, TestCases.TestCase>> stream;
+        if ("curated".equals(casesProp)) {
+            stream = TestCases.ALL.entrySet().stream();
+        } else if ("generated".equals(casesProp)) {
+            stream = GeneratedTestCases.ALL.entrySet().stream();
+        } else {
+            stream = Stream.concat(
+                    TestCases.ALL.entrySet().stream(),
+                    GeneratedTestCases.ALL.entrySet().stream());
+        }
+        return stream.map(e -> Named.of(e.getKey(), e.getValue()));
     }
 
     // -- The parameterized test --------------------------------------------
