@@ -8,31 +8,33 @@ Benchmark and correctness testing for Wynncraft skillpoint equip-ordering algori
 
 | Algorithm | PASS | FAIL | TOTAL |
 |---|---|---|---|
-| TheThirdAlgorithm | 27 | 0 | 27 |
-| MyFirstAlgorithm | 27 | 0 | 27 |
-| CascadeBoundChecker | 27 | 0 | 27 |
-| WynnSolverAlgorithm | 27 | 0 | 27 |
-| OurSecondAlgorithm | 27 | 0 | 27 |
-| MySecondAlgorithm | 27 | 0 | 27 |
-| TheFourthAlgorithm | 27 | 0 | 27 |
-| WynnAlgorithm | 25 | 2 | 27 |
-| GreedyAlgorithm | 26 | 1 | 27 |
-| SCCGraphAlgorithm | 26 | 1 | 27 |
+| TheCuteCatAlgo | 86 | 0 | 86 |
+| TheThirdAlgorithm | 86 | 0 | 86 |
+| MyFirstAlgorithm | 86 | 0 | 86 |
+| CascadeBoundChecker | 86 | 0 | 86 |
+| WynnSolverAlgorithm | 86 | 0 | 86 |
+| OurSecondAlgorithm | 86 | 0 | 86 |
+| MySecondAlgorithm | 86 | 0 | 86 |
+| TheFourthAlgorithm | 86 | 0 | 86 |
+| WynnAlgorithm | 84 | 2 | 86 |
+| GreedyAlgorithm | 84 | 2 | 86 |
+| SCCGraphAlgorithm | 81 | 5 | 86 |
 
 ### Performance (ServerSimJMH)
 
 | Algorithm | Mean(us/run) | Median | Worst | vs 1st |
 |---|---:|---:|---:|---:|
-| TheThirdAlgorithm | 918.711 | 924.964 | 945.626 | 1.0x |
-| TheFourthAlgorithm | 919.826 | 910.667 | 940.139 | 1.0x |
-| OurSecondAlgorithm | 1090.715 | 1104.575 | 1152.163 | 1.2x |
-| CascadeBound | 1682.988 | 1709.582 | 1722.333 | 1.8x |
-| MySecondAlgorithm | 2216.825 | 2144.239 | 2487.513 | 2.4x |
-| MyFirstAlgorithm | 2229.100 | 2217.632 | 2405.998 | 2.4x |
-| GreedyAlgorithm | 3270.796 | 3199.790 | 3633.044 | 3.6x |
-| WynnSolver | 4546.241 | 4565.405 | 4909.946 | 4.9x |
-| WynnAlgorithm | 6854.298 | 6888.420 | 8439.641 | 7.5x |
-| SCCGraphAlgorithm | 8836.854 | 8397.180 | 10116.290 | 9.6x |
+| TheCuteCatAlgo | 821.526 | 821.896 | 843.637 | 1.0x |
+| TheThirdAlgorithm | 904.788 | 906.248 | 952.797 | 1.1x |
+| TheFourthAlgorithm | 909.427 | 901.489 | 995.838 | 1.1x |
+| OurSecondAlgorithm | 1028.404 | 1018.946 | 1088.917 | 1.3x |
+| CascadeBound | 1691.755 | 1668.791 | 1895.672 | 2.1x |
+| MySecondAlgorithm | 2205.533 | 2277.261 | 2303.487 | 2.7x |
+| MyFirstAlgorithm | 2363.600 | 2363.619 | 2620.086 | 2.9x |
+| GreedyAlgorithm | 3296.681 | 3294.025 | 3346.818 | 4.0x |
+| WynnSolver | 5391.753 | 5299.192 | 5945.678 | 6.6x |
+| WynnAlgorithm | 7860.291 | 7474.945 | 10421.049 | 9.6x |
+| SCCGraphAlgorithm | 8920.284 | 8551.076 | 9815.667 | 10.9x |
 
 
 ## Skill Point Algorithm Bounty
@@ -103,6 +105,7 @@ Should weapon, set bonus, and crafted SP provisions be considered for tie breaki
 | `OurSecondAlgorithm` | Greedy + SWAR-packed BitmaskDP (5 dims in one long, 12-bit slots) with maxNeed precomputation | O(m · 2^m), m = non-free items (hard-capped m ≤ 8). Greedy-only best case: O(n²) |
 | `TheThirdAlgorithm` | Base-case shortcuts (1-2 items) + greedy + SWAR-packed BitmaskDP with bitset BFS and no-negative-bonus shortcut | O(m · 2^m), m = non-free items (hard-capped m ≤ 8). Greedy-only best case: O(n²) |
 | `TheFourthAlgorithm` | TheThirdAlgorithm + absent-item bit-iteration (BLSR+TZCNT) + globalMaxReq batch requirement check | O(m · 2^m), m = non-free items (hard-capped m ≤ 8). Greedy-only best case: O(n²) |
+| `TheCuteCatAlgo` | TheFourthAlgorithm + instance-field buffers (zero per-call alloc) + negMask bitmask + zero-alloc solve3 (fully unrolled 3-item permutations with labeled-break early exit) + zero-alloc solve2 + flat bitset word iteration | O(m · 2^m), m = non-free items (hard-capped m ≤ 8). Greedy-only best case: O(n²) |
 
 All algorithms extending `SkillpointChecker` implement:
 ```java
